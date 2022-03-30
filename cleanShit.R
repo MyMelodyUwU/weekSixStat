@@ -1,12 +1,16 @@
 cleandat = read.table("clean-survey.txt", header = TRUE)
 str(cleandat)
 
+# make columns
 mydat = transform(cleandat, sqrtLabour = sqrt(labour.cost))
 head(mydat)
+
+# change columns
 
 mydat = transform(cleandat, Ratio = labour.cost/hair.cost)
 head(mydat)
 
+# Clean data
 cleandat %>% mutate(Ratio = labour.cost/hair.cost) %>%
   select(labour.cost, hair.cost, Ratio)
 
@@ -22,6 +26,7 @@ apply(quantDat, 2, mean)
 quantDat %>% summarise(average_hair_cut = mean(hair.cost),
                        average_labour_cost = mean(labour.cost))
 
+# check for missing data
 any(is.na(cleandat$hair.cost))
 
 badHaircut = which(is.na(cleandat$hair.cost))
@@ -33,7 +38,7 @@ head(quantDat, n = 3)
 
 apply(quantDat, 2, mean, na.rm = TRUE) # Option to ignore NAs
 
-quantDat %>% summarise(average_hair_cut = mean(hair.cost, na.rm = TRUE)average_labour_cost = mean(labour.cost))
+# quantDat %>% summarise(average_hair_cut = mean(hair.cost, na.rm = TRUE) average_labour_cost = mean(labour.cost))
 
 boxplot(cleandat$labour.cost,
         main = "Labour cost for hour of time")
