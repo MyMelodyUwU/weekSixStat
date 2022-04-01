@@ -1,0 +1,601 @@
+---
+title: "Statistical Report Project(Part1)"
+author: "Darren Fernandes"
+date: "18/10/2021"
+output:
+  bookdown::pdf_document2:
+    number_section: TRUE
+  bookdown::html_document2: 
+    number_sections: TRUE
+params:
+  filename: project.csv
+editor_options:
+  markdown:
+    wrap: 72
+nocite: '@*'
+bibliography: reference.bib
+csl: APA.csl
+urlcolor: blue
+---
+
+```{r setup , include = FALSE}
+knitr::opts_chunk$set(echo = FALSE , warning = FALSE, error = FALSE, comment = NA, message = TRUE)
+#loading packages tidyverse, knitr, patchwork, crayon and glue
+library(tidyverse)
+library(knitr)
+library(patchwork)
+library(crayon)
+library(glue)
+#importing dataset to R.
+#please enter filename.csv in teh quotes below
+file_name <- params$filename
+file1 <- read_csv(file_name)
+```
+
+``` {r data calculation , include = FALSE}
+#q1
+der <- file1 %>%
+  select(weight, height)
+lmdata <- lm(weight ~ height, der)
+ model_summary <- summary(lmdata)
+  modelcoeffs <- model_summary$coefficients
+  p_valuelinear <- modelcoeffs["height",4]
+  beta.estimate <- modelcoeffs["height", "Estimate"]
+#q2
+maledataset <- file1 %>%
+pivot_wider( names_from = gender, values_from = height) %>%
+  select(Male) %>%
+  na.omit()
+maledataset <- as.vector(maledataset$Male)
+femaledataset <- file1 %>%
+pivot_wider( names_from = gender, values_from = height) %>%
+  select(Female) %>%
+  na.omit() 
+femaledataset <- as.vector(femaledataset$Female)
+ttest <- t.test(maledataset, femaledataset,var.equal = TRUE, conf.level = .95)
+p_value_ttest <- ttest$p.value
+#q3
+file3 <- file1 %>%
+  select(gender, phys) %>%
+  mutate(freqneeded =case_when((gender == 'Male') & (phys == 'None') ~  "MaleNone",
+                               (gender == 'Female') & (phys == 'None') ~  "FemaleNone",
+                               (gender == 'Male') & (phys == 'Moderate') ~  "MaleModerate",
+                               (gender == 'Female') & (phys == 'Moderate') ~  "FemaleModerate",
+                               (gender == 'Male') & (phys == 'Intense') ~  "MaleIntense",
+                               TRUE ~  "FemaleIntense"))
+count1 <- count(file3, freqneeded)
+count2 <- as.vector(count1$n , mode = "numeric")
+FemaleInt <- count2[1]
+FemaleMod <- count2[2]
+FemaleNon <- count2[3]
+MaleInt <- count2[4]
+MaleMod <- count2[5]
+MaleNon <- count2[6]
+matrix4 <- matrix(0, nrow = 2, ncol = 3)
+matrix4[1,1] = matrix4[1,1] + MaleNon
+matrix4[1,2] = matrix4[1,2] + MaleMod
+matrix4[1,3] = matrix4[1,3] + MaleInt
+matrix4[2,1] = matrix4[2,1] + FemaleNon
+matrix4[2,2] = matrix4[2,2] + FemaleMod
+matrix4[2,3] = matrix4[2,3] + FemaleInt
+rownames(matrix4) <- c("Male" , "Female")
+colnames(matrix4) <- c("None" , "Moderate" , "Intense")
+chisq_test <- chisq.test(matrix4, correct = FALSE)
+```
+# [Abstract]{.ul}
+
+The `r glue::glue(file_name)` data set is a csv file with observations from 
+`r summary(file1$gender)[1]` individuals aged 26-45 with variables relating to their gender, height, weight and intensity of physical activity. We analysed the `r glue::glue(file_name)` data set to answer the following research
+questions.
+
+1.  Is there a linear relationship between height and weight?
+    - We used ***Simple Linear Regression*** to test if there is a
+        linear relationship between weight and height
+    - We concluded that there is ***`r if(p_valuelinear<0.05 && beta.estimate>0){glue::glue("a positive linear relationship")}else{if(p_valuelinear<0.05 && beta.estimate<0){glue::glue("a negative linear relationship")}else{glue::glue("no linear relationship")}}`*** between weight and test i.e. as height increases, an individuals
+        weight increases.
+2.  Is the mean height of males and females the same?
+    - We used a ***2 Sample T-Test*** to test if the mean height of
+        males and females is the same i.e. the difference between the
+        mean height of males and females is 0.
+    - We concluded that there is ***`r if(p_value_ttest){glue::glue("significant difference")}else{glue::glue("no significant difference")}`*** between
+        the mean height of males and females.
+3.  Is there any association between gender and the amount of physical
+    activity?
+    - We used a $\mathbf{\chi^2}$-***test (chi-squared test)*** of
+        independence to test if gender and physical activity are
+        independent of each other.
+    - We concluded that gender and physical activity are
+        ***`r if(chisq_test$p.value>0.05){glue::glue("independent")}else{glue::glue("not independent")}`*** of each other.
+
+# [Introduction]{.ul}
+
+## Is there a linear relationship between height and weight?
+
+  - Researchers are interested in checking whether there is a linear   relationship between height and weight to understand whether height and weight and independent of each other    or not. 
+  - We have investigated this question in a cohort of `r summary(file1$gender)[1]` individuals aged 26-45 with        variables relating to gender, height, weight and amount of physical activity.
+  - We have used a ***linear regression analysis*** to answer the research question.
+
+## Is the mean height of males and females the same?
+
+  - Researchers are interested to ascertain, whether the mean height of males      and females is the same.
+  - We have investigated this question in a cohort of `r summary(file1$gender)[1]` individuals aged 26-45 with a subset of variables from research question 1, namely height and weight.
+  - We use the ***2 sample t-test*** to determine the answer to this research question
+
+## Is there any association between gender and the amount of physical activity?
+
+ - Researchers are interested to discover the level of association between gender and the amount of physical activity.
+ - We have investigated this question in a cohort of `r summary(file1$gender)[1]` individuals aged 26-45 creating 2 data sets with a count of different intensities of physical activity.
+ - We have used a $\mathbf{\chi^2}$-***test (chi-squared test)*** to determine the solution to this research question.
+ 
+# [Methods]{.ul}
+
+## Is there a linear relationship between height and weight?
+
+### [Study Population]{.ul}
+
+``` {r data statement}
+if(file_name == "project.csv"){
+  cat("The data set used in this question is " , file_name , " The data was obtained from Ilearn under \nthe project  tab. It contains ",summary(file1$gender)[1], "Observations of individuals aged 26-45 with information \non their gender, height, weight and amount of physical activity.")}else{
+    cat("The data set used in this question is " , file_name , " The data was inserted by the marker. \nIt contains ",summary(file1$gender)[1], "Observations of individuals aged 26-45 with information \non their gender, height, weight and amount of physical activity.")
+  }
+```
+``` {r data head}
+der <- file1 %>%
+  select(weight, height)
+kable(head(der), caption = "An extract of the wrangled data")
+```
+
+### [Formulae used in this Model]{.ul}
+
+ - To assess if there exists a linear relationship between height and weight, we performed a simple linear regression using the following model[@enwiki:1050660867]: $$\boldmath{{\text{Weight}}_{i} = \alpha + \beta \times {\text{Height}}_{i} + \epsilon_{i}}$$
+    where,
+      * $\alpha \rightarrow \text{True Intercept} = \bar{\text{Weight}} - \beta \times \bar{\text{Height}}$
+      * $\beta \rightarrow \ \text{True Slope} = \frac{S_{\text{Height Weight}}}{S_{Height Height}}$
+      * $\epsilon_{i} ~ N(0,\sigma^2)$
+      * $i \in 1,...,1000$
+ - To test for significance of the relationship, we employed the following test statistic[@linearregression]:$$\boldmath{ t = \frac{\hat{\beta}}{\text{S.E.}} \sim t_{n-2}}$$
+    where,
+      * $\hat{\beta} \rightarrow \text{estimated slope coefficient}$
+      * $\text{S.E.} \rightarrow \frac{S_{Y|X}}{\sqrt{\text{S}_{xx}}}$
+      * degrees of freedom = (n-2)
+  - To find the P-value:$$\boldmath{P(|T_{n-2}| \geq |t_{obs}|)}$$
+  - To find the Confidence Interval:$$\boldmath{\hat{\beta} \pm t_{n-2,\frac{\alpha}{2}} \times \text{S.E.}}$$
+      
+### [Regression Analysis Explained]{.ul}
+
+We use the lm() function from {stats} package[StatsRCoreTeam(2021).] in R to carry out the linear regression analysis. The process of the regression analysis is as follows:
+
+  1. We state the Null and Alternate Hypothesis
+  2. Then ckeck assumptions for this test:
+      - linearity and constant variance
+      - normality
+  3. We then calculate the Beta-estimate, test statistic, p-value, degree of freedom and the Confidence interval using lm() and confint()
+  4. We then decide whether to reject or support the null hypothesis. For the linear regression model the decision is made as follows:
+      - If P-value is less than 0.05, then we reject the null Hypothesis i.e. there is a linear relationship between height and weight.
+      - If P-value is greater than 0.05, then we have strong evidence to support the null hypothesis i.e. there is no relationship between height and weight.
+  5. We then present a conclusion according to the decision above. 
+      - We also check whether there is a positive or negative linear relationship judging by the value of the Beta Estimate. If the Beta estimate is less than 0 there is a negative linear relationship and vice versa.
+      - We also use the confidence interval to show the relationship between height and weight if there is any.
+
+## Is the mean height of males and females the same?
+
+### [Study Population]{.ul}
+
+```{r data message}
+cat("The data file used in this question is " ,file_name, "." ,
+    if(file_name == "project.csv"){
+      "The data was obtained from Ilearn under \nthe Project tab."}else{ 
+        "The data has been inserted by the grader."},"The data has been wrangled to fit the needs of this research question. The \ndata has been transformed to a vector containing the heights of males(maledataset) , and the \nheights of females(femaledataset)", sep ="")
+```
+
+```{r dataframe setup}
+maledataset <- file1 %>%
+pivot_wider( names_from = gender, values_from = height) %>%
+  select(Male) %>%
+  na.omit()
+maledataset <- as.vector(maledataset$Male)
+
+femaledataset <- file1 %>%
+pivot_wider( names_from = gender, values_from = height) %>%
+  select(Female) %>%
+  na.omit() 
+femaledataset <- as.vector(femaledataset$Female)
+
+removing_out <- function(dataset){
+  quantile1 <- quantile(dataset,0.25)
+  IQR <- IQR(dataset)
+  quantile3 <- quantile(dataset,0.75)
+  dataset <- subset(dataset, dataset > (quantile1-1.5*IQR) & dataset < (quantile3+1.5*IQR))
+  return(dataset)
+}
+
+maledataset <- removing_out(maledataset)
+femaledataset <- removing_out(femaledataset)
+
+da <- data.frame(head(maledataset),head(femaledataset), stringsAsFactors = FALSE)
+colnames(da) <- c("Male Dataset","Female Dataset")
+kable(da, caption = "Extract of Male and Female Dataset")
+```
+
+``` {r percentage of male and females}
+count <- file1 %>%
+  count(gender)
+femalecount <- count$n[1]
+malecount <- count$n[2]
+p <- femalecount+malecount
+Femalepercent <- femalecount/p*100
+Malepercent <- malecount/p*100
+cat("From the data we can see that " , Femalepercent,"% of the population are females and ", Malepercent,"% of the \npopulation are males. The percentage is almost equal and will keep the sample unbiased \nfor genders.")
+```
+
+### [Formulae used]{.ul}
+
+  - To test whether the mean height of males and females are equal, we employ the following test statistic[@twosamplettest]: $$\boldmath{\text{Test-Statistic} \rightarrow T = {\frac{\bar{X_1}-\bar{X_2}}{S_P\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}}} \sim t_{n_1+n_2-2} \text{ ,if } H_0 \text{ is true}}$$
+    where,
+      * $S^2_p = \frac{(n_1-1)S^2_1 + (n_2-1)S^2_2}{n_1 + n_2 - 2}, S^2_1 and S^2_2 \text{ are sample variances}$
+      
+      * $\text{degrees of freedom } = n_1 + n_2 -2$
+      * $\bar{X_1} \text{~} N(\mu_1,\frac{\sigma^2_1}{n_2})$
+      * $\bar{X_2} \text{~} N(\mu_2,\frac{\sigma^2_2}{n_1})$
+  - To find the P-value with the test statistic: $$\boldmath{\text{P-Value} \rightarrow \text{P}(|t_{n_1+n_2-2}| \geq |T_{obs}|)}$$
+  - To find the Confidence Interval:
+  $$\boldmath{\text{Confidence Interval} \rightarrow (\bar{X_1}-\bar{X2}) \pm t_{n_1 +n_2-2,\frac{\alpha}{2}}S_P\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}}$$
+  
+### [Two Sample T-Test Explained]{.ul}
+
+We use the t.test() function from the {stats} package[@RCoreTeam-stats] in R to carry out the 2 sample t-test with 2 equal but unknown variances. The process of the t-test is as follows:
+
+  1. We state the Null and Alternate Hypothesis
+        - Null: $\mu_1 - \mu_2 = 0$
+        - Alternate: $\mu_1 - \mu_2 \neq 0$
+  2. Then we check the assumptions of the test:
+        - normality
+        - equal variances and standard deviation
+        - independent samples
+  3. We then calculate the test-statistic, p-value, degree of freedom and the Confidence Interval using t.test() and confint().
+  4. We then decide whether to reject or support the null hypothesis. For the 2 sample t-test the decision is made as follows:
+        -  If P-value is less than 0.05, then we reject the Null Hypothesis i.e. reject that there is significant difference between the mean height of males and females.If zero lies outside the confidence interval, we reject the Null Hypothesis
+        -  If P-value is greater than 0.05, then we support the Null Hypothesis i.e. support that there is no significant difference in the mean height of males and females.If zero lies inside the confidence interval, we support the Null Hypothesis.
+  5.  We then present a conclusion according to the decision above.
+        - We also use the confidence interval to show that the true difference lies within it at the mentioned significance level.
+
+## Is there any association between gender and the amount of physical activity?
+
+### [Study Population]{.ul}
+```{r data message 3A}
+cat("The data file used in this question is " ,file_name, "." ,
+    if(file_name == "project.csv"){
+      "The data was obtained from Ilearn under \nthe Project tab."}else{ 
+        "The data has been inserted by the grader."}," The data has been wrangled to fit the needs of this research question. A \ntibble (count1) has been created to help visualise the data and create a contingency table for \nthe chi-squared test. Count1 has been created by using the case_when() function to create \nmultiple scenarios and the count() function to calculate the frequence of each scenario", sep ="")
+```
+
+```{r data visualisation table}
+file3 <- file1 %>%
+  select(gender, phys) %>%
+  mutate(freqneeded =case_when((gender == 'Male') & (phys == 'None') ~  "MaleNone",
+                               (gender == 'Female') & (phys == 'None') ~  "FemaleNone",
+                               (gender == 'Male') & (phys == 'Moderate') ~  "MaleModerate",
+                               (gender == 'Female') & (phys == 'Moderate') ~  "FemaleModerate",
+                               (gender == 'Male') & (phys == 'Intense') ~  "MaleIntense",
+                               TRUE ~  "FemaleIntense")) 
+count1 <- count(file3, freqneeded) %>%
+  add_column(Gender = c("Female", "Female" , "Female", "Male" , "Male" , "Male"), .before = "n") %>%
+  add_column(Physical_Activity = c("Intense", "Moderate" , "None", "Intense", "Moderate" , "None"), .before = "n") 
+colnames(count1) <- c("Joined" , "Gender" , "Physical Activity" , "Frequency")
+kable(count1, caption = "Count1 Data")
+```
+
+```{r visualising the data, fig.width = 10, fig.length = 6}
+file3 <- file1 %>%
+  select(gender, phys) %>%
+  mutate(freqneeded =case_when((gender == 'Male') & (phys == 'None') ~  "MaleNone",
+                               (gender == 'Female') & (phys == 'None') ~  "FemaleNone",
+                               (gender == 'Male') & (phys == 'Moderate') ~  "MaleModerate",
+                               (gender == 'Female') & (phys == 'Moderate') ~  "FemaleModerate",
+                               (gender == 'Male') & (phys == 'Intense') ~  "MaleIntense",
+                               TRUE ~  "FemaleIntense")) 
+count1 <- count(file3, freqneeded) %>%
+  add_column(Gender = c("Female", "Female" , "Female", "Male" , "Male" , "Male"), .before = "n") %>%
+  add_column(Physical_Activity = c("Intense", "Moderate" , "None", "Intense", "Moderate" , "None"), .before = "n") 
+
+p1 <- ggplot(data = count1) +
+geom_bar(aes(x = Physical_Activity, fill = Gender, y = n),
+stat = "identity", position = "dodge"
+) +
+  labs(y = "Frequency" , x = "Physical Activity" , title = "Data Visualisation by Physical Activity" )
+p2 <- ggplot(data = count1) +
+geom_bar(aes(x = Gender, fill = Physical_Activity, y = n),
+stat = "identity", position = "dodge"
+) +
+  labs(y = "Frequency" , x = "Gender" , title = "Data Visualisation by Gender" )
+print(p1 + p2)
+```
+
+### [Formulae used in the $\mathbf{\chi^2}$ - test]{.ul}
+
+  - Calculating the Expected Values:$$\boldmath{E_{ij} = n(\frac{O_i}{n} \times \frac{O_j}{n}) = \frac{O_i \times O_j}{n} = \frac{(\text{row i total} \times \text{column j total})}{\text{table total}}}$$
+  - To test if there is any association between gender and the amount of physical activity, we employ the following test-statistic[@chitest]:$$\mathbf{T_{obs} = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac {(O_{ij} - E_{ij})^2}{E{ij}} \sim \chi^2_{(r-1)(c-1)}}$$
+    where,
+    * r $\rightarrow$ row count
+    * c $\rightarrow$ column count
+    * $O_{ij} \rightarrow$ Observed value from row i and column j
+    * $E_{ij} \rightarrow$ Expected value from row i and column j
+    * degrees of freedom = $(r-1) \times (c-1)$
+  - To calculate the P-value:$$\boldmath{\text{P-value} = P(\chi^2_{(r-1)(c-1)} \geq T_{obs})}$$
+
+### [$\mathbf{\chi^2}$ - Test Explained]{.ul}
+
+We use the chisq.test() function from the {stats} package [@RCoreTeam-stats] in R to carry out the Chi-squared test of Independence. The process is as follows:
+
+  1. We state the Null and Alternate Hypothesis
+      - Null: Gender and Physical Activity are independent of each other.
+      - Alternative: Gender and Physical Activity are not independent of each other.
+  2. Then we check the Assumptions of the test:
+      - variables are categorical
+      - variables are mutually exclusive of each other
+      - Independence of Samples
+  3. We then calculate the test-statistic, degree of freedom and the P-Value using chisq.test()
+  4. We then decide whether to reject or support the Null Hypothesis. For the Chi-squared test of Independence, the decision is made as follows:
+      -  If P-value is less than 0.05, then we reject the Null Hypothesis i.e. gender and physical activity are independent of each other
+      -  If P-value is greater than 0.05, then we support the Null Hypothesis i.e. gender and physical activity are not independent of each other
+  5. We then present a conclusion according to the decision above.
+      
+# [Results]{.ul}
+
+## Investigating the relationship between Height and Weight
+
+### [Hypothesis]{.ul}
+
+```{r hypothesis}
+cat("Null Hypothesis [H0]: β is equal to 0 i.e. there is no linear relationship between height \nand weight","\n\nAlternate Hypothesis [H1]: β is not equal to 0 i.e.there is a linear relationship bewteen \nheight and weight.", sep = "") 
+```
+
+### [Assumptions]{.ul}
+
+```{r assumption graphs, fig.width =10, fig.length = 6, fig.align='center'}
+
+lmdata <- lm(weight ~ height, der)
+  a1 <- ggplot(data = lmdata)+
+    geom_point(aes(x = lmdata$fitted.values, y = lmdata$residuals), color = 'steelblue')+
+    labs(x = "Fitted Values", y = "Residual Values", title = "Residuals vs Fitted")
+  a2 <- ggplot(data = file1)+
+    geom_point(aes(x = height, y = weight),color = 'steelblue')+
+    labs(title = "Weight vs Height")
+  a3 <- ggplot(data = lmdata, aes(x = lmdata$residuals))+
+    geom_histogram(fill = 'steelblue', color = 'black', binwidth = 10)+
+    labs(title = 'Histogram of Residuals', x = 'residuals')
+  print(a2+a1+a3)
+```
+
+From the Plots above, we conclude:
+
+-   The assumptions of **linearity and constant variance are valid**
+    since there is no obvious pattern in the Residuals vs Fitted plot.
+-   The assumption of **normality is valid** as the histogram of
+    Residuals is bell-shaped.[@poole1971assumptions]
+
+### [Calculated Values]{.ul}
+```{r calcualtion}
+  model_summary <- summary(lmdata)
+  modelcoeffs <- model_summary$coefficients
+  std.error <- modelcoeffs["height", "Std. Error"]
+  CI <- confint(lmdata, 'height', level = 0.95)
+  matrix1 <- matrix(0, ncol = 1, nrow = 6)
+  rownames(matrix1) <- c("Beta Estimate" , "CI (2.5%)" ,"CI (97.5%)" , "T-value" , "Degrees of Freedom" , "P-value")
+  colnames(matrix1) <- ("Values")
+  matrix1[1,1] = matrix1[1,1] + round((beta.estimate <- modelcoeffs["height", "Estimate"]),2)
+  matrix1[2,1] = matrix1[2,1] + round(CI[1,1],2)
+  matrix1[3,1] = matrix1[3,1] + round(CI[1,2],2)
+  matrix1[4,1] = matrix1[4,1] + round((t_value <- beta.estimate/std.error),2)
+  matrix1[5,1] = matrix1[5,1] + (round((df <- model_summary$df[2]),2))
+  matrix1[6,1] = matrix1[6,1] + round((p_valuelinear <- modelcoeffs["height",4]),2)
+  table1 <- as.table(matrix1)
+  knitr::kable(table1, caption = "Beta Estimate, Confidence Interval, T-Value, Degree of Freedom and P-Value")
+```
+
+Fitted Linear regression line: $$\boldmath{{\text{Weight}}_{i} = {`r round(modelcoeffs["(Intercept)","Estimate"],2)`} + {`r round(beta.estimate,2)`} \times {\text{Height}}_{i}}$$
+
+### [Decision]{.ul}
+```{r decison automated for linear regression model}
+
+if(p_valuelinear<0.05){cat("Since the P-value =",signif(p_valuelinear,digits = 3),"from the liner regression model is very small, we reject \nthe Null Hypothesis")
+  }else{cat("Since the P-value =",signif(p_valuelinear,digits = 2),"from the linear regression model is more than 0.05,we don't reject \nthe Null Hypothesis" )}
+```
+
+## Investigating the difference between mean height of males and females
+
+### [Hypothesis]{.ul}
+
+```{r hypothesis 2}
+cat("Null Hypothesis [H0]: The mean height of males and females is the same, i.e. the difference \nbetween the mean height of males and females is 0.\n","\nAlternate Hypothesis [H1]: The mean height of males and females is different, i.e. the difference \nbetween the mean height of males and females is not equal to 0.", sep = "") 
+
+```
+
+### [Assumption]{.ul}
+
+
+```{r assumption for 2 sample t-test, fig.width = 10, fig.length = 7}
+a2 <- ggplot(data = file1, aes(sample = height)) +
+geom_qq(color = "steelblue") +
+geom_qq_line() +
+facet_wrap(~gender)+
+  labs(title = "QQPlot to check normality", y = "Height")
+
+a3 <- ggplot(data = file1, aes(y = height, x = gender)) +
+  geom_boxplot(fill = "steelblue") +
+  coord_flip() +
+  labs(x = "Gender", y = "Height" , title = "Clustured boxplot to assume equal spread")
+
+print(a2+a3)
+```
+
+From the above plots, we have learnt that[@twosamplet]:
+
+-   The assumptions normality of the data is valid as there is a linear
+    trend in the normal QQplot.
+-   The assumption of the standard deviations and variances being equal
+    is valid, as the boxplot is roughly of similar length.
+-   Even though it can't be checked, we assume that the two-samples are
+    independent. We trust that design of the study in data collection to
+    ensure such independence.
+
+### [Calculated Values using t.test()]{.ul}
+```{r calculations for t-test}
+ttest <- t.test(maledataset, femaledataset,var.equal = TRUE, conf.level = .95)
+CIttest <- ttest$conf.int
+matrix2 <- matrix(0, ncol = 1, nrow = 5)
+matrix2[1,1] = matrix2[1,1] + round((ttest_statistic <- ttest$statistic),2)
+matrix2[2,1] = matrix2[2,1] + round((dfttest <- ttest$parameter),2)
+matrix2[3,1] = matrix2[3,1] + round((p_value_ttest <- ttest$p.value),2)
+matrix2[4,1] = matrix2[4,1] + round((CIttest[1]),2)
+matrix2[5,1] = matrix2[5,1] + round((CIttest[2]),2)
+rownames(matrix2) <- c("Test-Statistic" , "Degree of Freedom" , "P-Value" , "Lower Confidence Interval" , "Upper Confidence Interval")
+colnames(matrix2) <- "Values"
+table2 <- as.table(matrix2)
+kable(table2, caption = "Test-statistic, p-value, degree of freedom and Confidence Interval")
+```
+
+### [Decison]{.ul}
+
+```{r decision of t-test}
+if(p_value_ttest<0.05){cat("Since the P-value =" ,format(p_value_ttest, digits = 3, nsmall = 2), "from the t-test is less than 0.05, we can reject the \nnull hypothesis.The mean height of males and females are different")
+}else 
+  {cat("Since the P-value =",format(p_value_ttest, digits = 3, nsmall = 2),"from the t-test is more than 0.05,we don't \nreject the Null Hypothesis. The mean height of males and the meanof females in the same" )}
+```
+
+## Investigating any association between Gender and Amount of Physical Activity
+
+### [Hypothesis]{.ul}
+
+```{r hypothesis 3}
+cat("Null Hypothesis [H0]: Gender and amount of physical activity are independent of each other\n","\nAlternate Hypothesis [H1]: Gender and amount of Physical activity are not independent of each other.", sep = "") 
+
+```
+
+### [Assumptions]{.ul}
+```{r editing the dataset as per needed and creating a table for the expected values}
+count1 <- count(file3, freqneeded)
+count2 <- as.vector(count1$n , mode = "numeric")
+FemaleInt <- count2[1]
+FemaleMod <- count2[2]
+FemaleNon <- count2[3]
+MaleInt <- count2[4]
+MaleMod <- count2[5]
+MaleNon <- count2[6]
+matrix3 <- matrix(0, nrow = 3, ncol = 4)
+rownames(matrix3) <- c("Male", "Female", "Total")
+colnames(matrix3) <- c("None" , "Moderate" , "Intense" , "Total")
+matrix3[1,1] = matrix3[1,1] + MaleNon
+matrix3["Male","Moderate"] = matrix3["Male","Moderate"] + MaleMod
+matrix3[1,3] = matrix3[1,3] + MaleInt
+matrix3[2,1] = matrix3[2,1] + FemaleNon
+matrix3[2,2] = matrix3[2,2] + FemaleMod
+matrix3[2,3] = matrix3[2,3] + FemaleInt
+matrix3[1,4] = sum(matrix3[1,1],matrix3[1,2],matrix3[1,3])
+matrix3[2,4] = sum(matrix3[2,1],matrix3[2,3],matrix3[2,2])
+matrix3[3,1] = sum(matrix3[1,1],matrix3[2,1])
+matrix3[3,2] = sum(matrix3[1,2],matrix3[2,2])
+matrix3[3,3] = sum(matrix3[1,3],matrix3[2,3])
+matrix3[3,4] = sum(matrix3[3,1],matrix3[3,3],matrix3[3,2])
+table3 <- as.table(matrix3)
+kable(table3, caption = "Observed Values")
+```
+
+From the above data, we can make the following Assumptions[@mchugh2013chi]:
+
+  - Both Variables are categorical.
+  - Both variables are mutually-exclusive of each other.
+  - Each observation is independent of each other.
+  
+### [Expected Values]{.ul}
+```{r expected values}
+
+matrix4 <- matrix(0, nrow = 2, ncol = 3)
+matrix4[1,1] = matrix4[1,1] + MaleNon
+matrix4[1,2] = matrix4[1,2] + MaleMod
+matrix4[1,3] = matrix4[1,3] + MaleInt
+matrix4[2,1] = matrix4[2,1] + FemaleNon
+matrix4[2,2] = matrix4[2,2] + FemaleMod
+matrix4[2,3] = matrix4[2,3] + FemaleInt
+rownames(matrix4) <- c("Male" , "Female")
+colnames(matrix4) <- c("None" , "Moderate" , "Intense")
+chisq_test <- chisq.test(matrix4, correct = FALSE)
+table4 <- as.table(chisq_test$expected)
+knitr::kable(table4 , caption = "Expected Values as per chisq.test()")
+```
+
+### [Calculated values using chisq.test()]{.ul}
+```{r calcultaion for chisqtest}
+matrix5 <- matrix(, nrow = 3, ncol =1)
+rownames(matrix5) <- c("Test-statistic" , "Degrees of Freedom" , "P-Value")
+colnames(matrix5) <- "Values"
+matrix5[1,1] = round(chisq_test$statistic,2)
+matrix5[2,1] = round(chisq_test$parameter,2)
+matrix5[3,1] = round(chisq_test$p.value,2)
+table5 <- as.table(matrix5)
+kable(table5, caption = "X-Squared Test Statistic, Degree of Freedom, P-Value")
+```
+
+### [Decision]{.ul}
+```{r Decision for chisqtest}
+
+if(chisq_test$p.value<0.05){cat("Since the P-value =",format(chisq_test$p.value, nsmall = 2),"from the chi-squared test is very small, we reject \nthe Null Hypothesis")
+  }else{cat("Since the P-value =",format(chisq_test$p.value, digits = 3, nsmall = 2),"from the chi-squared test is more than 0.05, we don't reject \nthe Null \nHypothesis" )}
+```
+    
+# [Final Discussion]{.ul}
+
+## Investigating the relationship between height and weight
+
+### [Conclusion]{.ul}
+```{r conclusion of linear regression model}
+if((p_valuelinear<0.05) && (beta.estimate<0)){
+  cat("We reject the null hypothesis at 5% significance level because the p-value =",format(p_valuelinear,digits = 3, nsmall = 2),"\nis less than 0.5. There is a negative linear relationship between height and weight \nbecause the beta estimate is less than 0. \nGiven the data, we are 95% confident that with an increase in height, the expected \nloss in weight is between" ,format(CI["height" , "2.5 %"], digits = 3, nsmall = 2), "and" ,format(CI["height" , "97.5 %"], digits = 3, nsmall = 2), "kgs.", sep = " ")
+}else{
+  if((p_valuelinear<0.05) && (beta.estimate>0)){
+    cat("We reject the null hypothesis at 5% significance level because the p-value =",format(p_valuelinear, digits = 3, nsmall = 2),"\nis less than 0.5. There is a positive linear relationship between height and weight \nbecause the beta estimate is greater than 0. \nGiven the data, we are 95% confident that with an increase in height, the expected \ngain in weight is between" ,format(CI["height" , "2.5 %"], digits = 3, nsmall = 2), "and" ,format(CI["height" , "97.5 %"], digits = 3, nsmall = 2), "kgs.", sep = " ")
+  }else{
+    cat("We do not reject the null hypothesis at 5% significance because the p-value =",format(p_valuelinear,digits = 3, nsmall = 2),"\nis greater than 5%.There is no linear relationship between Y and X.")
+}}
+```
+ 
+### [Why is there a positive linear relationship between height and weight?]{.ul}
+We can say that weight and height share a positive linear relationship ,i.e. as height increases, there is an increase in weight and vice-versa. The reason why this happens is because an increase in height leads to an increase in the volume of the body, which in turn leads to an increase in weight. 
+
+## Investigating the difference between mean height of males and females
+
+### [Conclusion]{.ul}
+```{r conclusion of the t-test}
+if(p_value_ttest<0.5){
+  cat("We can conclude at the 5% level of significance that there is significant evidence against \nthe null hypothesis, i.e. the mean height of males is not the same as the mean height of \nfemales. \nWe are 95% confidence that the interval (" ,format(CIttest[1], digits = 3, nsmall = 2), "," ,format(CIttest[2], digits = 3, nsmall = 2), ") includes the true \ndifference between the means", sep = "")
+} else{
+  cat("We can conclude at the 5% level of significance that there is significant evidence \nsupporting the null hypothesis, i.e. the mean height of males is the same as the mean height of females", sep ="")
+}
+```
+
+### [Why is there a significant difference in the mean height of males and females?]{.ul}
+Even though males lag behind females in height in early adolescence, they typically end up being taller than girls. The reason behind this is boys grow at a faster rate than girls and also over a longer period of time. Females reach their adult height at around 16 years of age and males reach their adult height at about 18 years of age.[@healthwisestaff]
+Males grow at a faster rate because they have higher levels of testosterone in their blood stream than females. The testicles release more and more testosterone into the blood as they mature.[@wilcox_2021] 
+
+## Investigating any association between gender and amount of Physical Activity
+
+### [Conclusion]{.ul}
+```{r Conclusion for chisqtest}
+if(chisq_test$p.value<0.05){
+cat("As P-value is less than 0.05 at " ,format(chisq_test$p.value, digits = 3, nsmall = 2), ", we have evidence against the Null \nHypothesis. There is strong evidence to suggest that gender and amount of physical \nactivity are not independent of each other", sep = "")
+} else{
+  cat("As P-value is larger than 0.05 at " ,format(chisq_test$p.value, digits = 3, nsmall = 2), ", we have evidence in support of the Null \nHypothesis. There is strong evidence to suggest that gender and amount of physical \nactivity are independent of each other", sep = "")
+}
+```
+
+### [Why is Gender and Pysical Activity independent of each other?(Is it?)]{.ul}
+Even though this test shows that Gender and Physical Activity is independent of each other, other articles on the web state otherwise. This shows that hypothesis testing will not always provide us with the right outcome. An article on the web mentioned that women were more active and reported significantly higher exercise by them[@craft2014gender], while others mentioned that men are more active than women[@azevedo2007gender].
+
+# References
+
+<div id="refs"></div>
+
+# abstract
+
+
+
